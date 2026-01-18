@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>✨ Juego: Feliz Año Nuevo ✨</title>
+  <style>
+    /* --- ZONA DE TEXTURAS Y VISUALES (Mi especialidad) --- */
+    body {
+      background-color: #050510; /* Azul muy oscuro (Cielo nocturno) */
+      color: white;
+      font-family: 'Verdana', sans-serif;
+      text-align: center;
+      margin: 0;
+      overflow: hidden; /* Para que no haya barras de desplazamiento */
+      /* Textura de fondo: Patrón de estrellas hecho con CSS */
+      background-image: 
+        radial-gradient(white 1px, transparent 1px),
+        radial-gradient(yellow 1px, transparent 1px);
+      background-size: 50px 50px, 30px 30px;
+      background-position: 0 0, 15px 15px;
+    }
+
+    h1 {
+      text-shadow: 0 0 10px #FFD700; /* Efecto neón dorado */
+      font-size: 3em;
+      margin-top: 20px;
+    }
+
+    .game-container {
+      margin-top: 50px;
+    }
+
+    /* Botones con estilo "Burbuja" */
+    .btn-accion {
+      background: linear-gradient(to bottom, #ff9966, #ff5e62);
+      border: 2px solid white;
+      border-radius: 15px;
+      color: white;
+      padding: 15px 30px;
+      font-size: 1.2em;
+      cursor: pointer;
+      margin: 10px;
+      transition: transform 0.2s;
+      box-shadow: 0 5px 0 #b33939; /* Sombra sólida para efecto 3D */
+    }
+
+    .btn-accion:active {
+      transform: translateY(5px); /* Efecto de presionar */
+      box-shadow: 0 0 0 #b33939;
+    }
+
+    /* Elementos ocultos que aparecerán */
+    .sorpresa {
+      display: none; /* Están escondidos al principio */
+      font-size: 2em;
+      margin: 20px;
+      animation: aparecer 1s ease-out;
+    }
+
+    /* Animación de entrada */
+    @keyframes aparecer {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    /* El mensaje final gigante */
+    #mensaje-final {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.9);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      z-index: 100;
+    }
+    
+    #texto-final {
+      font-size: 4em;
+      color: #00ff00;
+      text-shadow: 0 0 20px #00ff00;
+      animation: latido 1s infinite alternate;
+    }
+
+    @keyframes latido {
+      from { transform: scale(1); }
+      to { transform: scale(1.1); }
+    }
+
+  </style>
+</head>
+<body>
+
+  <h1>🎆 Misión: Año Nuevo 🎆</h1>
+  <p>¡Haz clic en los botones para preparar la fiesta!</p>
+
+  <div class="game-container">
+    <button class="btn-accion" onclick="activarPaso(1)">1. Encender Luces 💡</button>
+    <div id="resultado-1" class="sorpresa">✨ ¡Todo brilla! ✨</div>
+    <br>
+
+    <button class="btn-accion" onclick="activarPaso(2)">2. Preparar Cohetes 🚀</button>
+    <div id="resultado-2" class="sorpresa">🧨 ¡Pum! ¡Pum! ¡Listos! 🧨</div>
+    <br>
+
+    <button class="btn-accion" onclick="activarPaso(3)">3. Servir la Cena 🍇</button>
+    <div id="resultado-3" class="sorpresa">🍗 ¡Qué rico huele! 🥂</div>
+  </div>
+
+  <div id="mensaje-final">
+    <div id="texto-final">🎉 ¡FELIZ AÑO NUEVO! 🎉</div>
+    <p style="font-size: 2em">🎈🎈🎈</p>
+    <button class="btn-accion" onclick="reiniciar()">Jugar otra vez</button>
+  </div>
+
+  <script>
+    /* --- ZONA DE LÓGICA Y SFX (Sonido Programado) --- */
+    
+    let pasosCompletados = 0;
+    const totalPasos = 3;
+
+    // Generador de Sonidos (Web Audio API) - ¡Sin archivos mp3!
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function tocarSonido(tipo) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      if (tipo === 'win') {
+        // Sonido de victoria (escalera de notas)
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(880, audioCtx.currentTime + 0.5);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 1);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 1);
+      } else {
+        // Sonido de clic/cohete (corto)
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      }
+    }
+
+    // Lógica del juego
+    function activarPaso(numero) {
+      const elemento = document.getElementById('resultado-' + numero);
+      
+      // Si está oculto, lo mostramos
+      if (elemento.style.display !== 'block') {
+        tocarSonido('clic'); // SFX
+        elemento.style.display = 'block';
+        pasosCompletados++;
+
+        // Chequear si ganamos
+        if (pasosCompletados === totalPasos) {
+          setTimeout(mostrarFinal, 1000); // Esperar 1 segundo antes de celebrar
+        }
+      }
+    }
+
+    function mostrarFinal() {
+      tocarSonido('win'); // SFX Especial
+      document.getElementById('mensaje-final').style.display = 'flex';
+      
+      // Efecto extra: lluvia de emojis en el fondo (simple)
+      document.body.style.backgroundImage = "radial-gradient(circle, #ff0000 10%, transparent 10%), radial-gradient(circle, #00ff00 10%, transparent 10%)";
+    }
+
+    function reiniciar() {
+      location.reload();
+    }
+  </script>
+
+</body>
+</html>
